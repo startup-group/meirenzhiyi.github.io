@@ -1,5 +1,5 @@
 /*
-	Parallelism by HTML5 UP
+	Editorial by HTML5 UP
 	html5up.net | @ajlkn
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 */
@@ -7,384 +7,256 @@
 (function($) {
 
 	var	$window = $(window),
-		$body = $('body'),
-		$wrapper = $('#wrapper'),
-		$main = $('#main'),
-		settings = {
-
-			// Keyboard shortcuts.
-				keyboardShortcuts: {
-
-					// If true, enables scrolling via keyboard shortcuts.
-						enabled: true,
-
-					// Sets the distance to scroll when using the left/right arrow keys.
-						distance: 50
-
-				},
-
-			// Scroll wheel.
-				scrollWheel: {
-
-					// If true, enables scrolling via the scroll wheel.
-						enabled: true,
-
-					// Sets the scroll wheel factor. (Ideally) a value between 0 and 1 (lower = slower scroll, higher = faster scroll).
-						factor: 1
-
-				},
-
-			// Scroll zones.
-				scrollZones: {
-
-					// If true, enables scrolling via scroll zones on the left/right edges of the scren.
-						enabled: true,
-
-					// Sets the speed at which the page scrolls when a scroll zone is active (higher = faster scroll, lower = slower scroll).
-						speed: 15
-
-				}
-
-		};
+		$head = $('head'),
+		$body = $('body');
 
 	// Breakpoints.
 		breakpoints({
-			xlarge:  [ '1281px',  '1680px' ],
-			large:   [ '981px',   '1280px' ],
-			medium:  [ '737px',   '980px'  ],
-			small:   [ '481px',   '736px'  ],
-			xsmall:  [ null,      '480px'  ],
+			xlarge:   [ '1281px',  '1680px' ],
+			large:    [ '981px',   '1280px' ],
+			medium:   [ '737px',   '980px'  ],
+			small:    [ '481px',   '736px'  ],
+			xsmall:   [ '361px',   '480px'  ],
+			xxsmall:  [ null,      '360px'  ],
+			'xlarge-to-max':    '(min-width: 1681px)',
+			'small-to-xlarge':  '(min-width: 481px) and (max-width: 1680px)'
 		});
 
-	// Tweaks/fixes.
+	// Stops animations/transitions until the page has ...
 
-		// Mobile: Revert to native scrolling.
-			if (browser.mobile) {
-
-				// Disable all scroll-assist features.
-					settings.keyboardShortcuts.enabled = false;
-					settings.scrollWheel.enabled = false;
-					settings.scrollZones.enabled = false;
-
-				// Re-enable overflow on main.
-					$main.css('overflow-x', 'auto');
-
-			}
-
-		// IE: Fix min-height/flexbox.
-			if (browser.name == 'ie')
-				$wrapper.css('height', '100vh');
-
-		// iOS: Compensate for address bar.
-			if (browser.os == 'ios')
-				$wrapper.css('min-height', 'calc(100vh - 30px)');
-
-	// Play initial animations on page load.
-		$window.on('load', function() {
-			window.setTimeout(function() {
-				$body.removeClass('is-preload');
-			}, 100);
-		});
-
-	// Items.
-
-		// Assign a random "delay" class to each thumbnail item.
-			$('.item.thumb').each(function() {
-				$(this).addClass('delay-' + Math.floor((Math.random() * 6) + 1));
+		// ... loaded.
+			$window.on('load', function() {
+				window.setTimeout(function() {
+					$body.removeClass('is-preload');
+				}, 100);
 			});
 
-		// IE: Fix thumbnail images.
-			if (browser.name == 'ie')
-				$('.item.thumb').each(function() {
+		// ... stopped resizing.
+			var resizeTimeout;
+
+			$window.on('resize', function() {
+
+				// Mark as resizing.
+					$body.addClass('is-resizing');
+
+				// Unmark after delay.
+					clearTimeout(resizeTimeout);
+
+					resizeTimeout = setTimeout(function() {
+						$body.removeClass('is-resizing');
+					}, 100);
+
+			});
+
+	// Fixes.
+
+		// Object fit images.
+			if (!browser.canUse('object-fit')
+			||	browser.name == 'safari')
+				$('.image.object').each(function() {
 
 					var $this = $(this),
-						$img = $this.find('img');
+						$img = $this.children('img');
 
-					$this
-						.css('background-image', 'url(' + $img.attr('src') + ')')
-						.css('background-size', 'cover')
-						.css('background-position', 'center');
+					// Hide original image.
+						$img.css('opacity', '0');
 
-					$img
-						.css('opacity', '0');
+					// Set background.
+						$this
+							.css('background-image', 'url("' + $img.attr('src') + '")')
+							.css('background-size', $img.css('object-fit') ? $img.css('object-fit') : 'cover')
+							.css('background-position', $img.css('object-position') ? $img.css('object-position') : 'center');
 
 				});
 
-	// Poptrox.
-		$main.poptrox({
-			onPopupOpen: function() { $body.addClass('is-poptrox-visible'); },
-			onPopupClose: function() { $body.removeClass('is-poptrox-visible'); },
-			overlayColor: '#1a1f2c',
-			overlayOpacity: 0.75,
-			popupCloserText: '',
-			popupLoaderText: '',
-			selector: '.item.thumb a.image',
-			caption: function($a) {
-				return $a.prev('h2').html();
-			},
-			usePopupDefaultStyling: false,
-			usePopupCloser: false,
-			usePopupCaption: true,
-			usePopupNav: true,
-			windowMargin: 50
-		});
+	// Sidebar.
+		var $sidebar = $('#sidebar'),
+			$sidebar_inner = $sidebar.children('.inner');
 
-		breakpoints.on('>small', function() {
-			$main[0]._poptrox.windowMargin = 50;
-		});
+		// Inactive by default on <= large.
+			breakpoints.on('<=large', function() {
+				$sidebar.addClass('inactive');
+			});
 
-		breakpoints.on('<=small', function() {
-			$main[0]._poptrox.windowMargin = 0;
-		});
+			breakpoints.on('>large', function() {
+				$sidebar.removeClass('inactive');
+			});
 
-	// Keyboard shortcuts.
-		if (settings.keyboardShortcuts.enabled)
-			(function() {
+		// Hack: Workaround for Chrome/Android scrollbar position bug.
+			if (browser.os == 'android'
+			&&	browser.name == 'chrome')
+				$('<style>#sidebar .inner::-webkit-scrollbar { display: none; }</style>')
+					.appendTo($head);
+
+		// Toggle.
+			$('<a href="#sidebar" class="toggle">Toggle</a>')
+				.appendTo($sidebar)
+				.on('click', function(event) {
+
+					// Prevent default.
+						event.preventDefault();
+						event.stopPropagation();
+
+					// Toggle.
+						$sidebar.toggleClass('inactive');
+
+				});
+
+		// Events.
+
+			// Link clicks.
+				$sidebar.on('click', 'a', function(event) {
+
+					// >large? Bail.
+						if (breakpoints.active('>large'))
+							return;
+
+					// Vars.
+						var $a = $(this),
+							href = $a.attr('href'),
+							target = $a.attr('target');
+
+					// Prevent default.
+						event.preventDefault();
+						event.stopPropagation();
+
+					// Check URL.
+						if (!href || href == '#' || href == '')
+							return;
+
+					// Hide sidebar.
+						$sidebar.addClass('inactive');
+
+					// Redirect to href.
+						setTimeout(function() {
+
+							if (target == '_blank')
+								window.open(href);
+							else
+								window.location.href = href;
+
+						}, 500);
+
+				});
+
+			// Prevent certain events inside the panel from bubbling.
+				$sidebar.on('click touchend touchstart touchmove', function(event) {
+
+					// >large? Bail.
+						if (breakpoints.active('>large'))
+							return;
+
+					// Prevent propagation.
+						event.stopPropagation();
+
+				});
+
+			// Hide panel on body click/tap.
+				$body.on('click touchend', function(event) {
+
+					// >large? Bail.
+						if (breakpoints.active('>large'))
+							return;
+
+					// Deactivate.
+						$sidebar.addClass('inactive');
+
+				});
+
+		// Scroll lock.
+		// Note: If you do anything to change the height of the sidebar's content, be sure to
+		// trigger 'resize.sidebar-lock' on $window so stuff doesn't get out of sync.
+
+			$window.on('load.sidebar-lock', function() {
+
+				var sh, wh, st;
+
+				// Reset scroll position to 0 if it's 1.
+					if ($window.scrollTop() == 1)
+						$window.scrollTop(0);
 
 				$window
+					.on('scroll.sidebar-lock', function() {
 
-					// Keypress event.
-						.on('keydown', function(event) {
+						var x, y;
 
-							var scrolled = false;
+						// <=large? Bail.
+							if (breakpoints.active('<=large')) {
 
-							if ($body.hasClass('is-poptrox-visible'))
+								$sidebar_inner
+									.data('locked', 0)
+									.css('position', '')
+									.css('top', '');
+
 								return;
-
-							switch (event.keyCode) {
-
-								// Left arrow.
-									case 37:
-										$main.scrollLeft($main.scrollLeft() - settings.keyboardShortcuts.distance);
-										scrolled = true;
-										break;
-
-								// Right arrow.
-									case 39:
-										$main.scrollLeft($main.scrollLeft() + settings.keyboardShortcuts.distance);
-										scrolled = true;
-										break;
-
-								// Page Up.
-									case 33:
-										$main.scrollLeft($main.scrollLeft() - $window.width() + 100);
-										scrolled = true;
-										break;
-
-								// Page Down, Space.
-									case 34:
-									case 32:
-										$main.scrollLeft($main.scrollLeft() + $window.width() - 100);
-										scrolled = true;
-										break;
-
-								// Home.
-									case 36:
-										$main.scrollLeft(0);
-										scrolled = true;
-										break;
-
-								// End.
-									case 35:
-										$main.scrollLeft($main.width());
-										scrolled = true;
-										break;
 
 							}
 
-							// Scrolled?
-								if (scrolled) {
+						// Calculate positions.
+							x = Math.max(sh - wh, 0);
+							y = Math.max(0, $window.scrollTop() - x);
 
-									// Prevent default.
-										event.preventDefault();
-										event.stopPropagation();
+						// Lock/unlock.
+							if ($sidebar_inner.data('locked') == 1) {
 
-									// Stop link scroll.
-										$main.stop();
+								if (y <= 0)
+									$sidebar_inner
+										.data('locked', 0)
+										.css('position', '')
+										.css('top', '');
+								else
+									$sidebar_inner
+										.css('top', -1 * x);
 
-								}
-
-						});
-
-			})();
-
-	// Scroll wheel.
-		if (settings.scrollWheel.enabled)
-			(function() {
-
-				// Based on code by @miorel + @pieterv of Facebook (thanks guys :)
-				// github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
-					var normalizeWheel = function(event) {
-
-						var	pixelStep = 10,
-							lineHeight = 40,
-							pageHeight = 800,
-							sX = 0,
-							sY = 0,
-							pX = 0,
-							pY = 0;
-
-						// Legacy.
-							if ('detail' in event)
-								sY = event.detail;
-							else if ('wheelDelta' in event)
-								sY = event.wheelDelta / -120;
-							else if ('wheelDeltaY' in event)
-								sY = event.wheelDeltaY / -120;
-
-							if ('wheelDeltaX' in event)
-								sX = event.wheelDeltaX / -120;
-
-						// Side scrolling on FF with DOMMouseScroll.
-							if ('axis' in event
-							&&	event.axis === event.HORIZONTAL_AXIS) {
-								sX = sY;
-								sY = 0;
 							}
+							else {
 
-						// Calculate.
-							pX = sX * pixelStep;
-							pY = sY * pixelStep;
-
-							if ('deltaY' in event)
-								pY = event.deltaY;
-
-							if ('deltaX' in event)
-								pX = event.deltaX;
-
-							if ((pX || pY)
-							&&	event.deltaMode) {
-
-								if (event.deltaMode == 1) {
-									pX *= lineHeight;
-									pY *= lineHeight;
-								}
-								else {
-									pX *= pageHeight;
-									pY *= pageHeight;
-								}
+								if (y > 0)
+									$sidebar_inner
+										.data('locked', 1)
+										.css('position', 'fixed')
+										.css('top', -1 * x);
 
 							}
 
-						// Fallback if spin cannot be determined.
-							if (pX && !sX)
-								sX = (pX < 1) ? -1 : 1;
+					})
+					.on('resize.sidebar-lock', function() {
 
-							if (pY && !sY)
-								sY = (pY < 1) ? -1 : 1;
+						// Calculate heights.
+							wh = $window.height();
+							sh = $sidebar_inner.outerHeight() + 30;
 
-						// Return.
-							return {
-								spinX: sX,
-								spinY: sY,
-								pixelX: pX,
-								pixelY: pY
-							};
+						// Trigger scroll.
+							$window.trigger('scroll.sidebar-lock');
 
-					};
+					})
+					.trigger('resize.sidebar-lock');
 
-				// Wheel event.
-					$body.on('wheel', function(event) {
+				});
 
-						// Disable on <=small.
-							if (breakpoints.active('<=small'))
-								return;
+	// Menu.
+		var $menu = $('#menu'),
+			$menu_openers = $menu.children('ul').find('.opener');
 
-						// Prevent default.
-							event.preventDefault();
-							event.stopPropagation();
+		// Openers.
+			$menu_openers.each(function() {
 
-						// Stop link scroll.
-							$main.stop();
+				var $this = $(this);
 
-						// Calculate delta, direction.
-							var	n = normalizeWheel(event.originalEvent),
-								x = (n.pixelX != 0 ? n.pixelX : n.pixelY),
-								delta = Math.min(Math.abs(x), 150) * settings.scrollWheel.factor,
-								direction = x > 0 ? 1 : -1;
+				$this.on('click', function(event) {
 
-						// Scroll page.
-							$main.scrollLeft($main.scrollLeft() + (delta * direction));
+					// Prevent default.
+						event.preventDefault();
 
-					});
+					// Toggle.
+						$menu_openers.not($this).removeClass('active');
+						$this.toggleClass('active');
 
-			})();
+					// Trigger resize (sidebar lock).
+						$window.triggerHandler('resize.sidebar-lock');
 
-	// Scroll zones.
-		if (settings.scrollZones.enabled)
-			(function() {
+				});
 
-				var	$left = $('<div class="scrollZone left"></div>'),
-					$right = $('<div class="scrollZone right"></div>'),
-					$zones = $left.add($right),
-					paused = false,
-					intervalId = null,
-					direction,
-					activate = function(d) {
-
-						// Disable on <=small.
-							if (breakpoints.active('<=small'))
-								return;
-
-						// Paused? Bail.
-							if (paused)
-								return;
-
-						// Stop link scroll.
-							$main.stop();
-
-						// Set direction.
-							direction = d;
-
-						// Initialize interval.
-							clearInterval(intervalId);
-
-							intervalId = setInterval(function() {
-								$main.scrollLeft($main.scrollLeft() + (settings.scrollZones.speed * direction));
-							}, 25);
-
-					},
-					deactivate = function() {
-
-						// Unpause.
-							paused = false;
-
-						// Clear interval.
-							clearInterval(intervalId);
-
-					};
-
-				$zones
-					.appendTo($wrapper)
-					.on('mouseleave mousedown', function(event) {
-						deactivate();
-					});
-
-				$left
-					.css('left', '0')
-					.on('mouseenter', function(event) {
-						activate(-1);
-					});
-
-				$right
-					.css('right', '0')
-					.on('mouseenter', function(event) {
-						activate(1);
-					});
-
-				$body
-					.on('---pauseScrollZone', function(event) {
-
-						// Pause.
-							paused = true;
-
-						// Unpause after delay.
-							setTimeout(function() {
-								paused = false;
-							}, 500);
-
-					});
-
-			})();
+			});
 
 })(jQuery);
